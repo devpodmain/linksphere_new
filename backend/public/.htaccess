@@ -1,0 +1,18 @@
+RewriteEngine On
+
+# Handle Angular and React Router
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Allow PUT, DELETE methods
+    <LimitExcept GET POST PUT DELETE OPTIONS>
+        Require all granted
+    </LimitExcept>
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+

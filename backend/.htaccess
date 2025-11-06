@@ -1,0 +1,25 @@
+RewriteEngine On
+
+# Skip rewriting OPTIONS requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^ - [R=200,L]
+
+# Allow all HTTP verbs
+<Limit GET POST PUT DELETE PATCH OPTIONS>
+    Require all granted
+</Limit>
+
+# Disable ModSecurity here (if not done)
+<IfModule mod_security.c>
+    SecRuleEngine Off
+</IfModule>
+
+<Files "*">
+    Order allow,deny
+    Allow from all
+</Files>
+
+# Route all requests to index.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
