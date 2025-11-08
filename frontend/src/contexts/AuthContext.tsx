@@ -1,10 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { api } from '../services/api';
+import useDynamicFavicon from '../hooks/useFavicon';
+import { API_CONFIG } from '../config/api';
 
 interface User {
   id: number;
   name: string;
   email: string;
+  profile_image?: string | null;
+  profile_image_url?: string | null;
 }
 
 interface AuthContextType {
@@ -13,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   logout: () => Promise<void>;
+  setProfileImage: (imageUrl: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,16 +37,53 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useDynamicFavicon(profileImage, { fallbackHref: '/default-avatar.png', persist: true });
 
   useEffect(() => {
     // Don't check auth status if we're on a public profile page
-    const isPublicProfile = window.location.pathname.startsWith('/u/');
+    const isPublicProfile = /^\/(connect|user|u)\//.test(window.location.pathname);
     if (!isPublicProfile) {
       checkAuthStatus();
     } else {
       setLoading(false);
     }
   }, []);
+
+  const convertToAbsoluteImageUrl = (imageUrl?: string | null): string | null => {
+    if (!imageUrl) return null;
+
+    let normalizedUrl = imageUrl.trim();
+    if (!normalizedUrl) return null;
+
+    if (normalizedUrl.startsWith('uploads/')) {
+      normalizedUrl = `/${normalizedUrl}`;
+    }
+
+    if (normalizedUrl.startsWith('http')) return normalizedUrl;
+
+    if (normalizedUrl.startsWith('/uploads/profiles/')) {
+      const filename = normalizedUrl.split('/').pop();
+      return filename ? `${API_CONFIG.BASE_URL}/image.php?file=${filename}&type=profiles` : null;
+    }
+    if (normalizedUrl.startsWith('/uploads/qr/')) {
+      const filename = normalizedUrl.split('/').pop();
+      return filename ? `${API_CONFIG.BASE_URL}/image.php?file=${filename}&type=qr` : null;
+    }
+    if (normalizedUrl.startsWith('/api/uploads/collaborations/')) {
+      const filename = normalizedUrl.split('/').pop();
+      return filename ? `${API_CONFIG.BASE_URL}/image.php?file=${filename}&type=collaborations` : null;
+    }
+    if (normalizedUrl.startsWith('/')) {
+      return `${API_CONFIG.BASE_URL}${normalizedUrl}`;
+    }
+    return normalizedUrl;
+  };
+
+  const updateProfileImage = (imageUrl: string | null) => {
+    setProfileImage(convertToAbsoluteImageUrl(imageUrl));
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -52,6 +94,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           name: response.data.profile.name,
           email: response.data.profile.email
         });
+        const profile = response.data.profile;
+        updateProfileImage(
+          profile.profile_image_url ??
+          profile.profile_image ??
+          profile.profile?.profile_image ??
+          null
+        );
       }
     } catch (error) {
       console.log('Not authenticated');
@@ -65,6 +114,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.success) {
         setUser(response.data.user);
+        updateProfileImage(
+          response.data.user?.profile_image_url ??
+          response.data.user?.profile_image ??
+          response.data.user?.profile?.profile_image ??
+          null
+        );
       } else {
         throw new Error(response.data.message);
       }
@@ -83,6 +138,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       });
       if (response.data.success) {
         setUser(response.data.user);
+        updateProfileImage(
+          response.data.user?.profile_image_url ??
+          response.data.user?.profile_image ??
+          response.data.user?.profile?.profile_image ??
+          null
+        );
       } else {
         throw new Error(response.data.message);
       }
@@ -106,7 +167,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loading,
     login,
     register,
-    logout
+    logout,
+    setProfileImage: updateProfileImage
   };
 
   return (
