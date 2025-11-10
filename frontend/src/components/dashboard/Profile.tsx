@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import {
   DndContext,
@@ -12,8 +12,6 @@ import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -25,24 +23,22 @@ import toast from 'react-hot-toast';
 import { api } from '../../services/api';
 import { generateQRWithProfile } from '../../utils/qrCodeGenerator';
 import { API_CONFIG } from '../../config/api';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   Upload, 
   QrCode as QrCodeIcon, 
   Download,
   Save,
-  Eye,
-  EyeOff,
   Plus,
   Trash2,
   GripVertical,
   Instagram,
-  Twitter,
   Linkedin,
   Github,
   Youtube,
   Globe,
   Link as LinkIcon,
-  X,
+  X as CloseIcon,
   Check,
   Palette,
   Copy,
@@ -61,6 +57,12 @@ const FacebookIcon: React.FC<{ className?: string }> = ({ className }) => (
 const WhatsAppIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.893 3.488"/>
+  </svg>
+);
+
+const TwitterXIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.244 3h3.619l-7.884 9.058L22 21h-6.393l-4.613-5.414L5.6 21H2l8.533-9.823L2 3h6.393l4.193 4.923L18.244 3Z" />
   </svg>
 );
 
@@ -136,7 +138,7 @@ interface QRCodeStyle {
 // Social platform configurations
 const SOCIAL_PLATFORMS = [
   { key: 'instagram', name: 'Instagram', icon: Instagram, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-  { key: 'twitter', name: 'Twitter/X', icon: Twitter, color: 'bg-gradient-to-r from-blue-400 to-blue-600' },
+  { key: 'twitter', name: 'X (Twitter)', icon: TwitterXIcon, color: 'bg-black' },
   { key: 'linkedin', name: 'LinkedIn', icon: Linkedin, color: 'bg-gradient-to-r from-blue-600 to-blue-800' },
   { key: 'github', name: 'GitHub', icon: Github, color: 'bg-gradient-to-r from-gray-700 to-gray-900' },
   { key: 'youtube', name: 'YouTube', icon: Youtube, color: 'bg-gradient-to-r from-red-500 to-red-700' },
@@ -432,7 +434,6 @@ const Profile: React.FC = () => {
   const [hasError, setHasError] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [qrCodeSvg, setQrCodeSvg] = useState('');
-  const [showPreview, setShowPreview] = useState(false);
   const [showCropper, setShowCropper] = useState(false);
   const [croppedImage, setCroppedImage] = useState<CroppedImage | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState('');
@@ -446,6 +447,8 @@ const Profile: React.FC = () => {
     bgColor: '#FFFFFF',
     size: 256
   });
+
+  const { setProfileImage } = useAuth();
 
   // DnD sensors
   const sensors = useSensors(
@@ -473,6 +476,45 @@ const Profile: React.FC = () => {
     }
   });
 
+  const buildProfileUrl = useCallback(
+    (
+      slug: string | undefined,
+      options: { legacy?: boolean; variant?: 'connect' | 'user' | 'u'; relative?: boolean } = {}
+    ) => {
+      const { legacy = false, variant, relative = false } = options;
+      const safeSlug = (slug ?? '').trim();
+      let segment: 'connect' | 'user' | 'u';
+
+      if (variant) {
+        segment = variant;
+      } else if (legacy) {
+        segment = 'u';
+      } else {
+        segment = 'connect';
+      }
+
+      const path = safeSlug ? `${segment}/${safeSlug}` : segment;
+      if (relative) {
+        return `/${path}`;
+      }
+      return `${window.location.origin}/${path}`;
+    },
+    []
+  );
+
+  const profileSlug = watch('profile_url');
+  const primaryProfileUrl = useMemo(() => (
+    profileSlug ? buildProfileUrl(profileSlug) : ''
+  ), [buildProfileUrl, profileSlug]);
+
+  const userProfileUrl = useMemo(() => (
+    profileSlug ? buildProfileUrl(profileSlug, { variant: 'user' }) : ''
+  ), [buildProfileUrl, profileSlug]);
+
+  const legacyProfileUrl = useMemo(() => (
+    profileSlug ? buildProfileUrl(profileSlug, { variant: 'u' }) : ''
+  ), [buildProfileUrl, profileSlug]);
+
   const { fields: socialFields, append: appendSocial, remove: removeSocial, move: moveSocial } = useFieldArray({
     control,
     name: 'social_links'
@@ -493,7 +535,7 @@ const Profile: React.FC = () => {
     if (!profileUrl) return;
     
     try {
-      const url = `${window.location.origin}/u/${profileUrl}`;
+      const url = buildProfileUrl(profileUrl);
       
       // profileImageUrl is already converted to absolute URL by convertToAbsoluteImageUrl
       const absoluteImageUrl = profileImageUrl || undefined;
@@ -514,9 +556,9 @@ const Profile: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to generate QR code:', error);
       // Don't show toast for QR code errors as it's not critical
-      setQrCodeSvg(`${window.location.origin}/u/${profileUrl}`);
+      setQrCodeSvg(buildProfileUrl(profileUrl, { variant: 'user' }));
     }
-  }, [profileImageUrl, qrCodeStyle]);
+  }, [buildProfileUrl, profileImageUrl, qrCodeStyle]);
 
   // Load profile data
   useEffect(() => {
@@ -548,7 +590,6 @@ const Profile: React.FC = () => {
   const profileUrl = watch('profile_url');
   useEffect(() => {
     if (profileUrl) {
-      // Small delay to ensure profileImageUrl is set
       const timer = setTimeout(() => {
         generateQRCode(profileUrl);
       }, 100);
@@ -619,6 +660,7 @@ const Profile: React.FC = () => {
         try {
           const fullImageUrl = convertToAbsoluteImageUrl(profileData.profile_image ?? '');
           setProfileImageUrl(fullImageUrl);
+          setProfileImage(fullImageUrl || null);
         } catch (imgError) {
           console.error('Error setting profile image:', imgError);
         }
@@ -779,6 +821,7 @@ const Profile: React.FC = () => {
         // Construct full URL for the image using the image serving script
         const fullImageUrl = convertToAbsoluteImageUrl(response.data.image_url);
         setProfileImageUrl(fullImageUrl);
+        setProfileImage(fullImageUrl || null);
         setValue('profile_image', response.data.image_url); // Store original URL in form
         setShowCropper(false);
         setCroppedImage(null);
@@ -1013,7 +1056,7 @@ const Profile: React.FC = () => {
         <div className="card">
           <div className="text-center">
             <div className="text-red-600 mb-4">
-              <X className="h-12 w-12 mx-auto mb-2" />
+              <CloseIcon className="h-12 w-12 mx-auto mb-2" />
               <h2 className="text-xl font-semibold mb-2">Error Loading Profile</h2>
               <p className="text-secondary-600 mb-4">{error || 'An error occurred while loading your profile'}</p>
             </div>
@@ -1270,9 +1313,9 @@ const Profile: React.FC = () => {
 
             {/* Social Links */}
             <div className="card">
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6">
                 <h2 className="text-xl font-semibold text-secondary-900">Social Links</h2>
-                <div className="flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2">
                   {SOCIAL_PLATFORMS.map((platform) => (
                     <button
                       key={platform.key}
@@ -1353,7 +1396,7 @@ const Profile: React.FC = () => {
             {/* Collaborations */}
             <div className="card">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-secondary-900">Collaborations & Partnerships</h2>
+                <h2 className="text-xl font-semibold text-secondary-900">Proud Member of</h2>
                 <button
                   type="button"
                   onClick={addCollaboration}
@@ -1394,10 +1437,10 @@ const Profile: React.FC = () => {
               <button
                 type="submit"
                 disabled={saving}
-                className="btn-primary px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Save className="h-5 w-5 mr-2" />
-                {saving ? 'Saving...' : 'Save Profile'}
+                <Save className="h-5 w-5" />
+                <span className="whitespace-nowrap">{saving ? 'Saving...' : 'Save Profile'}</span>
               </button>
             </div>
           </form>
@@ -1456,22 +1499,24 @@ const Profile: React.FC = () => {
               </div>
               
               {/* Sharable URL */}
-              {watch('profile_url') && (
+              {profileSlug && (
                 <div className="mt-4 p-3 bg-secondary-50 rounded-lg">
                   <p className="text-xs text-secondary-600 mb-2 font-medium">Your Profile URL:</p>
                   <div className="flex items-center space-x-2">
                     <a
-                      href={`${window.location.origin}/u/${watch('profile_url')}`}
+                      href={primaryProfileUrl || userProfileUrl || legacyProfileUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary-600 hover:text-primary-700 font-mono break-all flex-1"
+                      data-user-url={userProfileUrl}
+                      data-legacy-url={legacyProfileUrl}
                     >
-                      {window.location.origin}/u/{watch('profile_url')}
+                      {primaryProfileUrl || userProfileUrl || legacyProfileUrl}
                     </a>
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/u/${watch('profile_url')}`);
+                        navigator.clipboard.writeText(primaryProfileUrl || userProfileUrl || legacyProfileUrl);
                         toast.success('URL copied to clipboard!');
                       }}
                       className="text-secondary-500 hover:text-secondary-700 p-1"
@@ -1485,30 +1530,7 @@ const Profile: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile Preview */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-secondary-900">Mobile Preview</h2>
-              <button
-                type="button"
-                onClick={() => setShowPreview(!showPreview)}
-                className="btn-secondary"
-              >
-                {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </button>
-            </div>
-            
-            {showPreview && (
-              <div className="bg-secondary-50 rounded-lg p-4">
-                <iframe
-                  src={`/u/${watch('profile_url') || 'preview'}`}
-                  className="w-full h-96 border-0 rounded-lg"
-                  title="Profile Preview"
-                />
-              </div>
-            )}
-          </div>
+          {/* Mobile Preview removed intentionally */}
         </div>
       </div>
 
@@ -1523,7 +1545,7 @@ const Profile: React.FC = () => {
                   onClick={() => setShowCropper(false)}
                   className="text-secondary-400 hover:text-secondary-600"
                 >
-                  <X className="h-6 w-6" />
+                  <CloseIcon className="h-6 w-6" />
                 </button>
               </div>
               

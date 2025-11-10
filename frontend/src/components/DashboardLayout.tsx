@@ -158,7 +158,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               {/* View Profile Button */}
               {profileUrl && (
                 <Link
-                  to={`/u/${profileUrl}`}
+                  to={`/connect/${profileUrl}`}
                   className="hidden sm:inline-flex items-center px-3 py-2 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 font-medium rounded-lg transition-colors text-sm"
                   target="_blank"
                 >
