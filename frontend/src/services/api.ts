@@ -31,7 +31,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Only try to refresh token for specific endpoints that require authentication
-    const protectedEndpoints = ['/profiles/me', '/account', '/support/tickets'];
+    const protectedEndpoints = ['/profiles/me', '/account', '/support/tickets', '/admin', '/superadmin'];
     const isProtectedEndpoint = protectedEndpoints.some(endpoint => 
       originalRequest.url?.includes(endpoint)
     );

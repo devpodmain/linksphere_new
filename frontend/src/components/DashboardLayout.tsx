@@ -2,16 +2,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
-import { 
-  Home, 
-  User, 
-  Settings, 
-  HelpCircle, 
-  LogOut, 
-  Menu, 
+import {
+  Home,
+  User,
+  Settings,
+  HelpCircle,
+  LogOut,
+  Menu,
   X,
   QrCode,
-  ChevronDown
+  ChevronDown,
+  Shield,
+  Crown
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -64,12 +66,25 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     };
   }, []);
 
-  const navigation = [
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = isSuperAdmin || user?.role === 'admin';
+
+  const baseNavigation = [
     { name: 'Home', href: '/dashboard', icon: Home },
     { name: 'Profile', href: '/dashboard/profile', icon: User },
     { name: 'Account', href: '/dashboard/account', icon: Settings },
     { name: 'Support', href: '/dashboard/support', icon: HelpCircle },
   ];
+
+  const navigation = [...baseNavigation];
+
+  if (isAdmin && !isSuperAdmin) {
+    navigation.push({ name: 'Admin Panel', href: '/dashboard/admin', icon: Shield });
+  }
+
+  if (isSuperAdmin) {
+    navigation.push({ name: 'Super Admin Panel', href: '/dashboard/superadmin', icon: Crown });
+  }
 
   const isActive = (href: string) => {
     return location.pathname === href;

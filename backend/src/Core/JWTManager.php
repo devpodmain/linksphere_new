@@ -16,7 +16,7 @@ class JWTManager
         self::$algorithm = Config::get('jwt_algorithm');
     }
 
-    public static function generateTokens($userId, $email)
+    public static function generateTokens($userId, $email, $role)
     {
         self::init();
         
@@ -30,6 +30,7 @@ class JWTManager
             'exp' => $now + Config::get('jwt_access_expiry'),
             'sub' => $userId,
             'email' => $email,
+            'role' => $role,
             'type' => 'access'
         ];
 
@@ -41,6 +42,7 @@ class JWTManager
             'exp' => $now + Config::get('jwt_refresh_expiry'),
             'sub' => $userId,
             'email' => $email,
+            'role' => $role,
             'type' => 'refresh'
         ];
 
@@ -74,7 +76,7 @@ class JWTManager
             return false;
         }
 
-        return self::generateTokens($decoded['sub'], $decoded['email']);
+        return self::generateTokens($decoded['sub'], $decoded['email'], $decoded['role'] ?? 'user');
     }
 
     public static function setTokenCookies(string $accessToken, string $refreshToken): void

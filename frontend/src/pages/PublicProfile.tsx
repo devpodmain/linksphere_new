@@ -19,6 +19,8 @@ import {
   CreditCard,
   Copy
 } from 'lucide-react';
+import { PLAN_FEATURES } from '../constants/subscriptions';
+import type { SubscriptionPlan } from '../services/subscriptions';
 import { generateMapUrl } from '../utils/mapUtils';
 import { generateQRWithProfile } from '../utils/qrCodeGenerator';
 import useDynamicFavicon from '../hooks/useFavicon';
@@ -69,6 +71,10 @@ interface ProfileData {
   profile_image: string;
   upi_id: string;
   upi_qr: string;
+  subscription_plan: SubscriptionPlan;
+  subscription_status: 'active' | 'expired' | 'paused';
+  subscription_period: string | null;
+  subscription_expires_at: string | null;
   social_links: SocialLink[];
   custom_links: CustomLink[];
   collaborations: Collaboration[];
@@ -132,6 +138,12 @@ const PublicProfile: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [qrError, setQrError] = useState(false);
+  const ownerPlanRaw = profile?.subscription_plan ?? 'free';
+  const ownerStatus = profile?.subscription_status ?? 'active';
+  const activePlan: SubscriptionPlan =
+    ownerPlanRaw !== 'free' && ownerStatus !== 'active' ? 'free' : ownerPlanRaw;
+  const allowedFeatures = PLAN_FEATURES[activePlan] ?? ['basic_profile'];
+  const hasFeature = (feature: string) => allowedFeatures.includes(feature);
 
   const profileImageUrl = useMemo(() => {
     if (!profile?.profile_image) return '';
@@ -457,7 +469,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Social Links */}
-          {profile.social_links && profile.social_links.length > 0 && (
+          {hasFeature('social_links') && profile.social_links && profile.social_links.length > 0 && (
             <div className="p-6 border-b border-secondary-200">
               <h2 className="text-lg font-semibold text-secondary-900 mb-4 text-center">Connect</h2>
               <div className="space-y-3">
@@ -481,7 +493,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Custom Links */}
-          {profile.custom_links && profile.custom_links.length > 0 && (
+          {hasFeature('custom_links') && profile.custom_links && profile.custom_links.length > 0 && (
             <div className="p-6 border-b border-secondary-200">
               <h2 className="text-lg font-semibold text-secondary-900 mb-4 text-center">Links</h2>
               <div className="space-y-3">
@@ -509,7 +521,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Collaborations */}
-          {profile.collaborations && profile.collaborations.length > 0 && (
+          {hasFeature('collaborations') && profile.collaborations && profile.collaborations.length > 0 && (
             <div className="p-6">
               <h2 className="text-lg font-semibold text-secondary-900 mb-4 text-center">Proud Member of</h2>
               <div className="space-y-4">
@@ -550,7 +562,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Make Payment Button */}
-          {(profile.upi_id || profile.upi_qr) && (
+          {hasFeature('payment') && (profile.upi_id || profile.upi_qr) && (
             <div className="p-6 border-b border-secondary-200">
               <button
                 onClick={() => setShowPaymentModal(true)}

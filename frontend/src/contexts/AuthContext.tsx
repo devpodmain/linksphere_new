@@ -2,11 +2,15 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { api } from '../services/api';
 import useDynamicFavicon from '../hooks/useFavicon';
 import { API_CONFIG } from '../config/api';
+import { fetchMySubscription, type SubscriptionSummary } from '../services/subscriptions';
+
+type UserRole = 'user' | 'admin' | 'super_admin';
 
 interface User {
   id: number;
   name: string;
   email: string;
+  role: UserRole;
   profile_image?: string | null;
   profile_image_url?: string | null;
 }
@@ -18,6 +22,8 @@ interface AuthContextType {
   register: (name: string, email: string, password: string, confirmPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   setProfileImage: (imageUrl: string | null) => void;
+  subscription: SubscriptionSummary | null;
+  refreshSubscription: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,6 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionSummary | null>(null);
 
   useDynamicFavicon(profileImage, { fallbackHref: '/default-avatar.png', persist: true });
 
@@ -92,7 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser({
           id: response.data.profile.id,
           name: response.data.profile.name,
-          email: response.data.profile.email
+          email: response.data.profile.email,
+          role: response.data.profile.role ?? 'user'
         });
         const profile = response.data.profile;
         updateProfileImage(
@@ -101,6 +109,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           profile.profile?.profile_image ??
           null
         );
+        await loadSubscription();
       }
     } catch (error) {
       console.log('Not authenticated');
@@ -109,17 +118,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const loadSubscription = async () => {
+    try {
+      const response = await fetchMySubscription();
+      if (response.data.success) {
+        setSubscription(response.data.subscription);
+      }
+    } catch (error) {
+      console.warn('Failed to load subscription details', error);
+      setSubscription(null);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.success) {
-        setUser(response.data.user);
+        setUser({
+          ...response.data.user,
+          role: response.data.user.role ?? 'user'
+        });
         updateProfileImage(
           response.data.user?.profile_image_url ??
           response.data.user?.profile_image ??
           response.data.user?.profile?.profile_image ??
           null
         );
+        await loadSubscription();
       } else {
         throw new Error(response.data.message);
       }
@@ -137,13 +162,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         confirm_password: confirmPassword
       });
       if (response.data.success) {
-        setUser(response.data.user);
+        setUser({
+          ...response.data.user,
+          role: response.data.user.role ?? 'user'
+        });
         updateProfileImage(
           response.data.user?.profile_image_url ??
           response.data.user?.profile_image ??
           response.data.user?.profile?.profile_image ??
           null
         );
+        await loadSubscription();
       } else {
         throw new Error(response.data.message);
       }
@@ -159,6 +188,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      setSubscription(null);
     }
   };
 
@@ -168,7 +198,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
-    setProfileImage: updateProfileImage
+    setProfileImage: updateProfileImage,
+    subscription,
+    refreshSubscription: loadSubscription
   };
 
   return (

@@ -29,6 +29,8 @@ class Config
             'upload_path' => $_ENV['UPLOAD_PATH'] ?? 'uploads/',
             'max_file_size' => (int)($_ENV['MAX_FILE_SIZE'] ?? 5242880),
             'allowed_image_types' => explode(',', $_ENV['ALLOWED_IMAGE_TYPES'] ?? 'jpg,jpeg,png,gif'),
+            'razorpay_key_id' => $_ENV['RAZORPAY_KEY_ID'] ?? null,
+            'razorpay_key_secret' => $_ENV['RAZORPAY_KEY_SECRET'] ?? null,
         ];
     }
 }

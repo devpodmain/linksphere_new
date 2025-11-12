@@ -2,6 +2,8 @@
 
 namespace App\Core;
 
+use App\Services\SubscriptionManager;
+
 class Auth
 {
     public static function middleware()
@@ -58,6 +60,11 @@ class Auth
             exit;
         }
 
+        $userId = (int) ($decoded['sub'] ?? 0);
+        if ($userId > 0) {
+            SubscriptionManager::autoExpireIfNeeded($userId);
+        }
+
         // --------------------------
         // ✅ Step 3: Return Decoded User Payload
         // --------------------------
@@ -71,7 +78,8 @@ class Auth
     
         return [
             'id' => $decoded['sub'] ?? null,
-            'email' => $decoded['email'] ?? null
+            'email' => $decoded['email'] ?? null,
+            'role' => $decoded['role'] ?? 'user'
         ];
     }
 }

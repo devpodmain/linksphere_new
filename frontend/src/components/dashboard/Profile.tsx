@@ -4,7 +4,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -43,8 +44,10 @@ import {
   Palette,
   Copy,
   Send,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Lock
 } from 'lucide-react';
+import { PLAN_FEATURES } from '../../constants/subscriptions';
 
 // Custom Facebook Icon Component
 const FacebookIcon: React.FC<{ className?: string }> = ({ className }) => (
@@ -188,7 +191,11 @@ const SortableSocialLink: React.FC<{
         isDragging ? 'shadow-lg border-primary-300' : 'border-secondary-200'
       }`}
     >
-      <div {...attributes} {...listeners} className="text-secondary-400 hover:text-secondary-600 cursor-grab">
+      <div
+        {...attributes}
+        {...listeners}
+        className="text-secondary-400 hover:text-secondary-600 cursor-grab active:cursor-grabbing touch-none select-none"
+      >
         <GripVertical className="h-5 w-5" />
       </div>
       
@@ -249,7 +256,11 @@ const SortableCustomLink: React.FC<{
         isDragging ? 'shadow-lg border-primary-300' : 'border-secondary-200'
       }`}
     >
-      <div {...attributes} {...listeners} className="text-secondary-400 hover:text-secondary-600 cursor-grab">
+      <div
+        {...attributes}
+        {...listeners}
+        className="text-secondary-400 hover:text-secondary-600 cursor-grab active:cursor-grabbing touch-none select-none"
+      >
         <GripVertical className="h-5 w-5" />
       </div>
       
@@ -323,7 +334,11 @@ const SortableCollaboration: React.FC<{
       }`}
     >
       <div className="flex items-start space-x-3">
-        <div {...attributes} {...listeners} className="text-secondary-400 hover:text-secondary-600 mt-2 cursor-grab">
+        <div
+          {...attributes}
+          {...listeners}
+          className="text-secondary-400 hover:text-secondary-600 mt-2 cursor-grab active:cursor-grabbing touch-none select-none"
+        >
           <GripVertical className="h-5 w-5" />
         </div>
         
@@ -448,11 +463,41 @@ const Profile: React.FC = () => {
     size: 256
   });
 
-  const { setProfileImage } = useAuth();
+  const { setProfileImage, subscription } = useAuth();
+  const activePlan = subscription?.plan ?? 'free';
+  const allowedFeatures = PLAN_FEATURES[activePlan] ?? PLAN_FEATURES.free;
+  const hasFeature = (feature: string) => allowedFeatures.includes(feature);
+  const renderLockedCard = (title: string, description: string) => (
+    <div className="card border-dashed border-secondary-200 bg-secondary-50">
+      <div className="flex items-start gap-3">
+        <Lock className="h-5 w-5 text-secondary-400 mt-1" />
+        <div>
+          <h3 className="text-lg font-semibold text-secondary-900">{title}</h3>
+          <p className="text-sm text-secondary-600">{description}</p>
+          <a
+            href="/dashboard/account"
+            className="btn-primary mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm"
+          >
+            Upgrade Plan
+          </a>
+        </div>
+      </div>
+    </div>
+  );
 
   // DnD sensors
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 150,
+        tolerance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -1246,6 +1291,7 @@ const Profile: React.FC = () => {
                 </div>
 
                 {/* UPI Payment Section */}
+                {hasFeature('payment') ? (
                 <div className="md:col-span-2 border-t border-secondary-200 pt-6 mt-2">
                   <h3 className="text-lg font-semibold text-secondary-900 mb-4">UPI Payment Settings</h3>
                   
@@ -1308,10 +1354,12 @@ const Profile: React.FC = () => {
                     </p>
                   </div>
                 </div>
+                ) : null}
               </div>
             </div>
 
             {/* Social Links */}
+            {hasFeature('social_links') ? (
             <div className="card">
               <div className="mb-6">
                 <h2 className="text-xl font-semibold text-secondary-900">Social Links</h2>
@@ -1354,8 +1402,10 @@ const Profile: React.FC = () => {
                 </SortableContext>
               </DndContext>
             </div>
+            ) : null}
 
             {/* Custom Links */}
+            {hasFeature('custom_links') ? (
             <div className="card">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-secondary-900">Custom Links</h2>
@@ -1392,8 +1442,10 @@ const Profile: React.FC = () => {
                 </SortableContext>
               </DndContext>
             </div>
+            ) : null}
 
             {/* Collaborations */}
+            {hasFeature('collaborations') ? (
             <div className="card">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-secondary-900">Proud Member of</h2>
@@ -1431,6 +1483,7 @@ const Profile: React.FC = () => {
                 </SortableContext>
               </DndContext>
             </div>
+            ) : null}
 
             {/* Save Button */}
             <div className="flex justify-end">

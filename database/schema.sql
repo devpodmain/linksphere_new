@@ -8,7 +8,12 @@ CREATE TABLE users (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    subscription_plan ENUM('free', 'premium') DEFAULT 'free',
+    role ENUM('super_admin', 'admin', 'user') NOT NULL DEFAULT 'user',
+    subscription_plan ENUM('trial', 'free', 'basic', 'premium') NOT NULL DEFAULT 'free',
+    status ENUM('active', 'disabled') NOT NULL DEFAULT 'active',
+    subscription_status ENUM('active', 'expired', 'paused') NOT NULL DEFAULT 'active',
+    subscription_period ENUM('trial', 'monthly', 'yearly') NULL,
+    subscription_expires_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -87,4 +92,54 @@ CREATE INDEX idx_custom_links_profile_id ON custom_links(profile_id);
 CREATE INDEX idx_collaborations_profile_id ON collaborations(profile_id);
 CREATE INDEX idx_support_tickets_user_id ON support_tickets(user_id);
 
+
+-- System settings table
+CREATE TABLE system_settings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO system_settings (setting_key, setting_value) VALUES
+    ('pricing_basic_monthly', '249'),
+    ('pricing_basic_yearly', '2499'),
+    ('pricing_premium_monthly', '350'),
+    ('pricing_premium_yearly', '3500'),
+    ('support_email', 'support@linksphere.com'),
+    ('support_phone', '+91-0000-000000');
+
+-- Payments table
+CREATE TABLE payments (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    razorpay_order_id VARCHAR(191) NOT NULL UNIQUE,
+    razorpay_payment_id VARCHAR(191) NULL,
+    razorpay_signature VARCHAR(255) NULL,
+    plan ENUM('free', 'basic', 'premium') NOT NULL,
+    period ENUM('monthly', 'yearly') NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'INR',
+    status ENUM('created', 'paid', 'failed') NOT NULL DEFAULT 'created',
+    response_payload JSON NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Subscription history table
+CREATE TABLE subscription_history (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    previous_plan ENUM('trial', 'free', 'basic', 'premium') NULL,
+    new_plan ENUM('trial', 'free', 'basic', 'premium') NOT NULL,
+    status ENUM('active', 'expired', 'paused') NOT NULL DEFAULT 'active',
+    period ENUM('trial', 'monthly', 'yearly') NULL,
+    expires_at DATETIME NULL,
+    changed_by VARCHAR(191) NULL,
+    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_subscription_history_user_id ON subscription_history(user_id, changed_at DESC);
 

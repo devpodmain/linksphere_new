@@ -22,7 +22,7 @@ class ProfileController
         try {
             // Get profile data
             $stmt = $this->db->prepare("
-                SELECT p.*, u.subscription_plan 
+                SELECT p.*, u.subscription_plan, u.role
                 FROM user_profiles p 
                 JOIN users u ON p.user_id = u.id 
                 WHERE p.user_id = ?
@@ -69,6 +69,7 @@ class ProfileController
                     'upi_id' => $profile['upi_id'],
                     'upi_qr' => $profile['upi_qr'],
                     'subscription_plan' => $profile['subscription_plan'],
+                    'role' => $profile['role'] ?? $user['role'],
                     'social_links' => $socialLinks,
                     'custom_links' => $customLinks,
                     'collaborations' => $collaborations
@@ -256,7 +257,7 @@ class ProfileController
         
         try {
             $stmt = $this->db->prepare("
-                SELECT p.*, u.subscription_plan 
+                SELECT p.*, u.subscription_plan, u.subscription_status, u.subscription_period, u.subscription_expires_at 
                 FROM user_profiles p 
                 JOIN users u ON p.user_id = u.id 
                 WHERE p.profile_url = ?
@@ -300,6 +301,10 @@ class ProfileController
                     'profile_image' => $profile['profile_image'],
                     'upi_id' => $profile['upi_id'],
                     'upi_qr' => $profile['upi_qr'],
+                    'subscription_plan' => $profile['subscription_plan'] ?? 'free',
+                    'subscription_status' => $profile['subscription_status'] ?? 'active',
+                    'subscription_period' => $profile['subscription_period'],
+                    'subscription_expires_at' => $profile['subscription_expires_at'],
                     'social_links' => $socialLinks,
                     'custom_links' => $customLinks,
                     'collaborations' => $collaborations

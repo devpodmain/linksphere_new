@@ -28,10 +28,14 @@ class Router
 
     private function addRoute($method, $path, $handler)
     {
+        preg_match_all('/\{([^}]+)\}/', $path, $matches);
+        $paramNames = $matches[1] ?? [];
+
         $this->routes[] = [
             'method' => $method,
             'path' => $path,
-            'handler' => $handler
+            'handler' => $handler,
+            'paramNames' => $paramNames
         ];
         
     }
@@ -60,8 +64,9 @@ class Router
         }
         
         foreach ($this->routes as $route) {
-            if ($route['method'] === $method && $this->matchPath($route['path'], $path)) {
-                $this->executeHandler($route['handler'], $path);
+            $routeParams = [];
+            if ($route['method'] === $method && $this->matchPath($route['path'], $path, $routeParams)) {
+                $this->executeHandler($route['handler'], $path, $routeParams);
                 return;
             }
         }
@@ -73,16 +78,28 @@ class Router
         ]);
     }
 
-    private function matchPath($routePath, $requestPath)
+    private function matchPath($routePath, $requestPath, &$routeParams = [])
     {
-        // Convert route path to regex
         $pattern = preg_replace('/\{([^}]+)\}/', '([^/]+)', $routePath);
         $pattern = '#^' . $pattern . '$#';
-        
-        return preg_match($pattern, $requestPath);
+
+        if (preg_match($pattern, $requestPath, $matches)) {
+            array_shift($matches);
+            preg_match_all('/\{([^}]+)\}/', $routePath, $paramNames);
+            $names = $paramNames[1] ?? [];
+            $routeParams = [];
+            foreach ($names as $index => $name) {
+                if (isset($matches[$index])) {
+                    $routeParams[$name] = $matches[$index];
+                }
+            }
+            return true;
+        }
+
+        return false;
     }
 
-    private function executeHandler($handler, $path)
+    private function executeHandler($handler, $path, array $routeParams = [])
     {
         if (is_string($handler)) {
             // Format: "Controller@method"
@@ -94,20 +111,28 @@ class Router
                 if (method_exists($controller, $method)) {
                     // Extract route parameters for profile URL
                     if (strpos($path, '/profiles/') === 0) {
-                        $pathParts = explode('/', trim($path, '/'));
-                        if (count($pathParts) >= 2) {
-                            $_GET['profile_url'] = $pathParts[1];
+                        if (isset($routeParams['profile_url'])) {
+                            $_GET['profile_url'] = $routeParams['profile_url'];
+                        } else {
+                            $pathParts = explode('/', trim($path, '/'));
+                            if (count($pathParts) >= 2) {
+                                $_GET['profile_url'] = $pathParts[1];
+                            }
                         }
                     }
                     
                     // Extract filename parameter for uploads routes
                     if (strpos($path, '/uploads/') === 0) {
-                        $pathParts = explode('/', trim($path, '/'));
-                        if (count($pathParts) >= 3) {
-                            $_GET['filename'] = $pathParts[2];
+                        if (isset($routeParams['filename'])) {
+                            $_GET['filename'] = $routeParams['filename'];
+                        } else {
+                            $pathParts = explode('/', trim($path, '/'));
+                            if (count($pathParts) >= 3) {
+                                $_GET['filename'] = $pathParts[2];
+                            }
                         }
                     }
-                    $controller->$method();
+                    call_user_func_array([$controller, $method], array_values($routeParams));
                 } else {
                     throw new \Exception("Method {$method} not found in {$controllerClass}");
                 }

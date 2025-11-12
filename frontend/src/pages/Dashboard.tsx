@@ -7,6 +7,15 @@ import Home from '../components/dashboard/Home';
 import Profile from '../components/dashboard/Profile';
 import Account from '../components/dashboard/Account';
 import Support from '../components/dashboard/Support';
+import AdminLayout from './admin/AdminLayout';
+import AdminOverview from './admin/AdminOverview';
+import UserManagement from './admin/UserManagement';
+import AdminSubscriptionManagement from './admin/SubscriptionManagement';
+import SuperAdminLayout from './superadmin/SuperAdminLayout';
+import SystemOverview from './superadmin/SystemOverview';
+import SuperAdminUserManager from './superadmin/AdminUserManager';
+import SubscriptionManagement from './superadmin/SubscriptionManagement';
+import GlobalConfig from './superadmin/GlobalConfig';
 
 // Error Boundary to catch any rendering errors
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
@@ -67,17 +76,42 @@ const Dashboard: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
+  const isSuperAdmin = user.role === 'super_admin';
+  const isAdmin = user.role === 'admin';
+
   return (
     <DashboardLayout>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/profile" element={
-          <ErrorBoundary>
-            <Profile />
-          </ErrorBoundary>
-        } />
+        <Route
+          path="/profile"
+          element={
+            <ErrorBoundary>
+              <Profile />
+            </ErrorBoundary>
+          }
+        />
         <Route path="/account" element={<Account />} />
         <Route path="/support" element={<Support />} />
+        {isAdmin ? (
+          <Route path="/admin/*" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="subscriptions" element={<AdminSubscriptionManagement />} />
+          </Route>
+        ) : (
+          <Route path="/admin/*" element={<Navigate to="/dashboard" replace />} />
+        )}
+        {isSuperAdmin ? (
+          <Route path="/superadmin/*" element={<SuperAdminLayout />}>
+            <Route index element={<SystemOverview />} />
+            <Route path="admins" element={<SuperAdminUserManager />} />
+            <Route path="subscriptions" element={<SubscriptionManagement />} />
+            <Route path="config" element={<GlobalConfig />} />
+          </Route>
+        ) : (
+          <Route path="/superadmin/*" element={<Navigate to="/dashboard" replace />} />
+        )}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </DashboardLayout>

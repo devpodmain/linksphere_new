@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Database;
 use App\Core\JWTManager;
 use App\Core\Config;
+use App\Services\SubscriptionManager;
 
 class AuthController
 {
@@ -63,7 +64,7 @@ class AuthController
             $this->db->commit();
 
             // Generate tokens
-            $tokens = JWTManager::generateTokens($userId, $input['email']);
+            $tokens = JWTManager::generateTokens($userId, $input['email'], 'user');
             JWTManager::setTokenCookies($tokens['access_token'], $tokens['refresh_token']);
 
             echo json_encode([
@@ -72,7 +73,8 @@ class AuthController
                 'user' => [
                     'id' => $userId,
                     'name' => $input['name'],
-                    'email' => $input['email']
+                    'email' => $input['email'],
+                    'role' => 'user'
                 ]
             ]);
 
@@ -101,7 +103,12 @@ class AuthController
         }
 
         try {
-            $stmt = $this->db->prepare("SELECT id, name, email, password_hash FROM users WHERE email = ?");
+            $stmt = $this->db->prepare("
+                SELECT id, name, email, password_hash, role,
+                       subscription_plan, subscription_status, subscription_period, subscription_expires_at
+                FROM users
+                WHERE email = ?
+            ");
             $stmt->execute([$input['email']]);
             $user = $stmt->fetch();
 
@@ -114,8 +121,21 @@ class AuthController
                 return;
             }
 
+            // Auto-expire overdue subscriptions before proceeding
+            SubscriptionManager::autoExpireIfNeeded((int) $user['id']);
+
+            // Activate trial on first login for regular users
+            if (
+                ($user['role'] ?? 'user') === 'user' &&
+                ($user['subscription_plan'] ?? 'free') === 'free' &&
+                ($user['subscription_status'] ?? 'active') === 'active' &&
+                empty($user['subscription_expires_at'])
+            ) {
+                SubscriptionManager::activatePlan((int) $user['id'], 'trial', 'trial');
+            }
+
             // Generate tokens
-            $tokens = JWTManager::generateTokens($user['id'], $user['email']);
+            $tokens = JWTManager::generateTokens($user['id'], $user['email'], $user['role'] ?? 'user');
             JWTManager::setTokenCookies($tokens['access_token'], $tokens['refresh_token']);
 
             echo json_encode([
@@ -124,7 +144,8 @@ class AuthController
                 'user' => [
                     'id' => $user['id'],
                     'name' => $user['name'],
-                    'email' => $user['email']
+                    'email' => $user['email'],
+                    'role' => $user['role'] ?? 'user'
                 ]
             ]);
 
