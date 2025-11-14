@@ -158,13 +158,16 @@ const Account: React.FC = () => {
         throw new Error(data?.message || 'Unable to initiate payment');
       }
 
+      // Store order ID for verification
+      const orderId = data.order.id;
+
       const options = {
         key: data.key_id,
         amount: data.order.amount,
         currency: data.order.currency,
         name: 'Linksphere',
         description: `${PLAN_LABELS[planId]} plan (${period})`,
-        order_id: data.order.id,
+        order_id: orderId,
         prefill: {
           name: account?.name,
           email: account?.email
@@ -174,7 +177,32 @@ const Account: React.FC = () => {
         },
         handler: async (response: any) => {
           try {
-            await api.post('/payments/verify', response);
+            // Extract payment ID (required)
+            // Backend will fetch order_id and generate signature if missing
+            const verificationData: any = {
+              razorpay_payment_id: response.razorpay_payment_id || response.payment_id
+            };
+
+            // Add order_id if available (from response or stored)
+            if (response.razorpay_order_id || response.order_id) {
+              verificationData.razorpay_order_id = response.razorpay_order_id || response.order_id;
+            } else if (orderId) {
+              verificationData.razorpay_order_id = orderId;
+            }
+
+            // Add signature if available
+            if (response.razorpay_signature || response.signature) {
+              verificationData.razorpay_signature = response.razorpay_signature || response.signature;
+            }
+
+            // Validate that payment_id is present (minimum requirement)
+            if (!verificationData.razorpay_payment_id) {
+              console.error('Missing payment ID. Original response:', response);
+              toast.error('Payment verification failed: Missing payment ID. Please contact support.');
+              return;
+            }
+
+            await api.post('/payments/verify', verificationData);
             toast.success('Your subscription has been upgraded!');
             setLoading(true);
             await fetchAccount();

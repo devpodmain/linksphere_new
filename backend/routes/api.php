@@ -16,7 +16,9 @@ $router->get('/', function() {
                 'POST /auth/register' => 'Register new user',
                 'POST /auth/login' => 'Login user',
                 'POST /auth/logout' => 'Logout user',
-                'POST /auth/refresh' => 'Refresh token'
+                'POST /auth/refresh' => 'Refresh token',
+                'POST /auth/forgot-password' => 'Send password reset link',
+                'POST /auth/reset-password' => 'Reset password with token'
             ],
             'profiles' => [
                 'GET /profiles/me' => 'Get my profile',
@@ -48,6 +50,8 @@ $router->post('/auth/register', 'AuthController@register');
 $router->post('/auth/login', 'AuthController@login');
 $router->post('/auth/logout', 'AuthController@logout');
 $router->post('/auth/refresh', 'AuthController@refresh');
+$router->post('/auth/forgot-password', 'AuthController@forgotPassword');
+$router->post('/auth/reset-password', 'AuthController@resetPassword');
 
 $router->get('/subscriptions/me', 'SubscriptionController@me');
 $router->get('/subscriptions/access', 'SubscriptionController@access');

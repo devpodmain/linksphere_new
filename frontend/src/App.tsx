@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import LandingPage from './pages/LandingPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import PublicProfile from './pages/PublicProfile';
 import { AuthProvider } from './contexts/AuthContext';
@@ -24,6 +26,8 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/dashboard/*" element={<Dashboard />} />
               <Route path="/connect/:profileUrl" element={<PublicProfile />} />
               <Route path="/user/:profileUrl" element={<LegacyProfileRedirect />} />

@@ -14,9 +14,16 @@ CREATE TABLE users (
     subscription_status ENUM('active', 'expired', 'paused') NOT NULL DEFAULT 'active',
     subscription_period ENUM('trial', 'monthly', 'yearly') NULL,
     subscription_expires_at DATETIME NULL,
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    email_verification_token VARCHAR(255) NULL,
+    reset_token VARCHAR(255) NULL,
+    reset_expires_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_users_email_verification_token ON users(email_verification_token);
+CREATE INDEX idx_users_reset_token ON users(reset_token);
 
 -- User profiles table
 CREATE TABLE user_profiles (
@@ -142,4 +149,17 @@ CREATE TABLE subscription_history (
 );
 
 CREATE INDEX idx_subscription_history_user_id ON subscription_history(user_id, changed_at DESC);
+
+-- Email logs table
+CREATE TABLE email_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NULL,
+    email VARCHAR(255) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_email_logs_user_id ON email_logs(user_id);
 

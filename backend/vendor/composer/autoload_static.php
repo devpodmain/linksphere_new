@@ -33,6 +33,7 @@ class ComposerStaticInit7a1afcf0601811b0fccf58f108630538
         'P' => 
         array (
             'PhpOption\\' => 10,
+            'PHPMailer\\PHPMailer\\' => 20,
         ),
         'G' => 
         array (
@@ -81,6 +82,10 @@ class ComposerStaticInit7a1afcf0601811b0fccf58f108630538
         array (
             0 => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption',
         ),
+        'PHPMailer\\PHPMailer\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/phpmailer/phpmailer/src',
+        ),
         'GrahamCampbell\\ResultType\\' => 
         array (
             0 => __DIR__ . '/..' . '/graham-campbell/result-type/src',
@@ -102,9 +107,12 @@ class ComposerStaticInit7a1afcf0601811b0fccf58f108630538
     public static $classMap = array (
         'App\\Controllers\\AccountController' => __DIR__ . '/../..' . '/src/Controllers/AccountController.php',
         'App\\Controllers\\AdminController' => __DIR__ . '/../..' . '/src/Controllers/AdminController.php',
+        'App\\Controllers\\AdminSubscriptionController' => __DIR__ . '/../..' . '/src/Controllers/AdminSubscriptionController.php',
         'App\\Controllers\\AuthController' => __DIR__ . '/../..' . '/src/Controllers/AuthController.php',
+        'App\\Controllers\\ConfigController' => __DIR__ . '/../..' . '/src/Controllers/ConfigController.php',
         'App\\Controllers\\PaymentController' => __DIR__ . '/../..' . '/src/Controllers/PaymentController.php',
         'App\\Controllers\\ProfileController' => __DIR__ . '/../..' . '/src/Controllers/ProfileController.php',
+        'App\\Controllers\\SubscriptionController' => __DIR__ . '/../..' . '/src/Controllers/SubscriptionController.php',
         'App\\Controllers\\SuperAdminController' => __DIR__ . '/../..' . '/src/Controllers/SuperAdminController.php',
         'App\\Controllers\\SuperAdminSubscriptionController' => __DIR__ . '/../..' . '/src/Controllers/SuperAdminSubscriptionController.php',
         'App\\Controllers\\SupportController' => __DIR__ . '/../..' . '/src/Controllers/SupportController.php',
@@ -113,8 +121,11 @@ class ComposerStaticInit7a1afcf0601811b0fccf58f108630538
         'App\\Core\\Config' => __DIR__ . '/../..' . '/src/Core/Config.php',
         'App\\Core\\Database' => __DIR__ . '/../..' . '/src/Core/Database.php',
         'App\\Core\\JWTManager' => __DIR__ . '/../..' . '/src/Core/JWTManager.php',
+        'App\\Core\\Mailer' => __DIR__ . '/../..' . '/src/Core/Mailer.php',
         'App\\Core\\Router' => __DIR__ . '/../..' . '/src/Core/Router.php',
         'App\\Middleware\\RoleMiddleware' => __DIR__ . '/../..' . '/src/Middleware/RoleMiddleware.php',
+        'App\\Services\\SubscriptionManager' => __DIR__ . '/../..' . '/src/Services/SubscriptionManager.php',
+        'App\\Services\\SystemSettings' => __DIR__ . '/../..' . '/src/Services/SystemSettings.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'Dotenv\\Dotenv' => __DIR__ . '/..' . '/vlucas/phpdotenv/src/Dotenv.php',
@@ -169,6 +180,13 @@ class ComposerStaticInit7a1afcf0601811b0fccf58f108630538
         'GrahamCampbell\\ResultType\\Error' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Error.php',
         'GrahamCampbell\\ResultType\\Result' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Result.php',
         'GrahamCampbell\\ResultType\\Success' => __DIR__ . '/..' . '/graham-campbell/result-type/src/Success.php',
+        'PHPMailer\\PHPMailer\\DSNConfigurator' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/DSNConfigurator.php',
+        'PHPMailer\\PHPMailer\\Exception' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/Exception.php',
+        'PHPMailer\\PHPMailer\\OAuth' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/OAuth.php',
+        'PHPMailer\\PHPMailer\\OAuthTokenProvider' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/OAuthTokenProvider.php',
+        'PHPMailer\\PHPMailer\\PHPMailer' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/PHPMailer.php',
+        'PHPMailer\\PHPMailer\\POP3' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/POP3.php',
+        'PHPMailer\\PHPMailer\\SMTP' => __DIR__ . '/..' . '/phpmailer/phpmailer/src/SMTP.php',
         'PhpOption\\LazyOption' => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption/LazyOption.php',
         'PhpOption\\None' => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption/None.php',
         'PhpOption\\Option' => __DIR__ . '/..' . '/phpoption/phpoption/src/PhpOption/Option.php',

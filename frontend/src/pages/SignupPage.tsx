@@ -36,6 +36,7 @@ const SignupPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
   const { register: registerUser } = useAuth();
   const navigate = useNavigate();
@@ -51,10 +52,11 @@ const SignupPage: React.FC = () => {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      await registerUser(data.name, data.email, data.password, data.confirmPassword);
-      navigate('/dashboard');
+      const response = await registerUser(data.name, data.email, data.password, data.confirmPassword);
+      setSuccess(response?.message ?? 'Verification email sent to your inbox. Please verify before logging in.');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -83,6 +85,22 @@ const SignupPage: React.FC = () => {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                <p>{success}</p>
+                <p className="text-sm mt-2">
+                  Once you verify your email, you can{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/login')}
+                    className="text-primary-600 hover:text-primary-700 font-semibold"
+                  >
+                    sign in here
+                  </button>
+                  .
+                </p>
               </div>
             )}
 

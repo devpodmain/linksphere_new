@@ -205,8 +205,8 @@ class SuperAdminController
         $this->db->beginTransaction();
         try {
             $insert = $this->db->prepare("
-                INSERT INTO users (name, email, password_hash, role, subscription_plan)
-                VALUES (?, ?, ?, 'admin', 'free')
+                INSERT INTO users (name, email, password_hash, role, subscription_plan, email_verified, status, subscription_status, created_at, updated_at)
+                VALUES (?, ?, ?, 'admin', 'free', 1, 'active', 'active', NOW(), NOW())
             ");
             $insert->execute([$name, $email, $passwordHash]);
             $userId = (int) $this->db->lastInsertId();
@@ -287,6 +287,7 @@ class SuperAdminController
                     subscription_status,
                     subscription_period,
                     subscription_expires_at,
+                    email_verified,
                     created_at,
                     updated_at
                 ) VALUES (
@@ -299,6 +300,7 @@ class SuperAdminController
                     'active',
                     NULL,
                     NULL,
+                    1,
                     NOW(),
                     NOW()
                 )

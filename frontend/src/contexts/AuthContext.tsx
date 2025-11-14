@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from 'react';
 import { api } from '../services/api';
 import useDynamicFavicon from '../hooks/useFavicon';
 import { API_CONFIG } from '../config/api';
@@ -48,15 +48,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useDynamicFavicon(profileImage, { fallbackHref: '/default-avatar.png', persist: true });
 
+  const PUBLIC_PATHS = useMemo(
+    () => new Set(['/', '/login', '/signup', '/register', '/forgot-password', '/reset-password']),
+    []
+  );
+
   useEffect(() => {
-    // Don't check auth status if we're on a public profile page
-    const isPublicProfile = /^\/(connect|user|u)\//.test(window.location.pathname);
-    if (!isPublicProfile) {
-      checkAuthStatus();
-    } else {
+    const pathname = window.location.pathname;
+    const isPublicProfile = /^\/(connect|user|u)\//.test(pathname);
+    const isPublicRoute = PUBLIC_PATHS.has(pathname);
+
+    if (isPublicProfile || isPublicRoute) {
       setLoading(false);
+      return;
     }
-  }, []);
+
+    checkAuthStatus();
+  }, [PUBLIC_PATHS]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const pathname = window.location.pathname;
+    const isPublicProfile = /^\/(connect|user|u)\//.test(pathname);
+    const isPublicRoute = PUBLIC_PATHS.has(pathname);
+
+    if (!user && !isPublicProfile && !isPublicRoute) {
+      window.location.replace('/login');
+    }
+  }, [loading, user, PUBLIC_PATHS]);
 
   const convertToAbsoluteImageUrl = (imageUrl?: string | null): string | null => {
     if (!imageUrl) return null;
@@ -162,17 +182,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         confirm_password: confirmPassword
       });
       if (response.data.success) {
-        setUser({
-          ...response.data.user,
-          role: response.data.user.role ?? 'user'
-        });
-        updateProfileImage(
-          response.data.user?.profile_image_url ??
-          response.data.user?.profile_image ??
-          response.data.user?.profile?.profile_image ??
-          null
-        );
-        await loadSubscription();
+        return response.data;
       } else {
         throw new Error(response.data.message);
       }

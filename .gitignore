@@ -1,0 +1,6 @@
+
+# PHP / Composer
+backend/vendor/
+backend/composer.phar
+
+backend/*.local.php

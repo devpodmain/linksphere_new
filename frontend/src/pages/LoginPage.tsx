@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -22,9 +22,11 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     register,
@@ -34,15 +36,33 @@ const LoginPage: React.FC = () => {
     resolver: yupResolver(schema)
   });
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const message = params.get('message');
+    const verified = params.get('verified');
+    if (message) {
+      setInfo(decodeURIComponent(message));
+    } else if (verified === '1') {
+      setInfo('Email verified successfully. You can now log in.');
+    } else if (verified === '0') {
+      setInfo('Verification link could not be validated. Please request a new one or contact support.');
+    }
+  }, [location.search]);
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     setError('');
+    setInfo('');
 
     try {
       await login(data.email, data.password);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message);
+      const message = err.message || 'Unable to sign in.';
+      setError(message);
+      if (message.toLowerCase().includes('verify your email')) {
+        setInfo('Please verify your email address before logging in. Check your inbox for the verification email.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +86,11 @@ const LoginPage: React.FC = () => {
         {/* Form */}
         <div className="card">
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            {info && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg">
+                {info}
+              </div>
+            )}
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                 {error}
@@ -133,9 +158,9 @@ const LoginPage: React.FC = () => {
                 </label>
               </div>
               <div className="text-sm">
-                <a href="#" className="text-primary-600 hover:text-primary-700">
+                <Link to="/forgot-password" className="text-primary-600 hover:text-primary-700">
                   Forgot your password?
-                </a>
+                </Link>
               </div>
             </div>
 
